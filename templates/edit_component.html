@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}Edit Component - Hardware Inventory
+{% block title %}Edit Component - Hardware Inventory{% endblock %}
+
+{% block page_title %}Edit Component - {{ component.model }}{% endblock %}
+
+{% block content %}
 <script>
 function deleteComponent(id, model) {
     if (confirm(`Are you sure you want to delete component: ${model}?`)) {
@@ -24,10 +28,6 @@ function deleteComponent(id, model) {
     }
 }
 </script>
-{% endblock %}
-
-{% block content %}
-<h1>Edit Component</h1>
 
 <div class="card">
     <form method="post">

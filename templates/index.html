@@ -2,17 +2,17 @@
 
 {% block title %}Dashboard - Hardware Inventory{% endblock %}
 
-{% block content %}
-<h1>Hardware Inventory Dashboard</h1>
+{% block page_title %}Dashboard{% endblock %}
 
+{% block content %}
 <div class="stats-grid">
-    <div class="stat-card">
+    <a href="{{ url_for('systems') }}" class="stat-card clickable" style="text-decoration: none; color: inherit;">
         <h3>Total Systems</h3>
         <div class="stat-value">{{ system_count }}</div>
-    </div>
+    </a>
     
     {% for comp_type, counts in stats.items() %}
-    <div class="stat-card">
+    <a href="{{ url_for('components', type=comp_type) }}" class="stat-card clickable" style="text-decoration: none; color: inherit;">
         <h3>{{ comp_type|title }}</h3>
         <div>
             <span class="status-badge status-installed">Installed: {{ counts.installed }}</span>
@@ -21,7 +21,7 @@
             <span class="status-badge status-retired">Retired: {{ counts.retired }}</span>
             {% endif %}
         </div>
-    </div>
+    </a>
     {% endfor %}
 </div>
 

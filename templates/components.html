@@ -1,6 +1,14 @@
 {% extends "base.html" %}
 
-{% block title %}Components - Hardware Inventory
+{% block title %}Components - Hardware Inventory{% endblock %}
+
+{% block page_title %}
+    Components
+    {% if filter_type %} - {{ filter_type|title }}{% endif %}
+    {% if filter_status %} ({{ filter_status|title }}){% endif %}
+{% endblock %}
+
+{% block content %}
 <script>
 function deleteComponent(id, model) {
     if (confirm(`Are you sure you want to delete component: ${model}?`)) {
@@ -24,10 +32,6 @@ function deleteComponent(id, model) {
     }
 }
 </script>
-{% endblock %}
-
-{% block content %}
-<h1>Components</h1>
 
 <div class="filter-bar">
     <form method="get" action="{{ url_for('components') }}" style="display: inline;">

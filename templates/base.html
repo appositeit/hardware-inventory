@@ -31,25 +31,14 @@
         }
         .container {
             margin: 0 auto;
-            padding: 30px;
-            padding-top: 90px; /* Account for sticky nav */
+            padding: 20px;
+            padding-top: 20px; /* Reduced top padding since title is in nav */
         }
-        h1 {
-            color: #1e3c72;
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 1.5rem;
-            position: relative;
-            display: inline-block;
-        }
-        h1::after {
-            content: '';
-            position: absolute;
-            bottom: -5px;
-            left: 0;
-            width: 50px;
-            height: 3px;
-            background: linear-gradient(90deg, #ffd700 0%, #ffed4e 100%);
+        .page-title {
+            color: #ffd700;
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-left: 1rem;
         }
         h2 {
             color: #2a5298;
@@ -77,6 +66,7 @@
             justify-content: space-between;
             align-items: center;
             padding: 0 2rem;
+            flex-wrap: wrap;
         }
         .nav-brand {
             font-size: 1.5rem;
@@ -131,7 +121,7 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
         th, td {
-            padding: 12px;
+            padding: 6px 12px; /* Reduced vertical padding */
             text-align: left;
             border-bottom: 1px solid #ddd;
         }
@@ -171,6 +161,16 @@
         .stat-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 5px 25px rgba(0,0,0,0.15);
+        }
+        .stat-card.clickable {
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+        }
+        .stat-card.clickable:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 25px rgba(0,0,0,0.15);
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
         }
         .stat-card h3 {
             margin: 0 0 15px 0;
@@ -270,7 +270,10 @@
 <body>
     <nav>
         <div class="nav-container">
-            <a href="{{ url_for('index') }}" class="nav-brand">Hardware Inventory</a>
+            <div style="display: flex; align-items: center;">
+                <a href="{{ url_for('index') }}" class="nav-brand">Hardware Inventory</a>
+                <span class="page-title">{% block page_title %}{% endblock %}</span>
+            </div>
             <div class="nav-links">
                 <a href="{{ url_for('index') }}" {% if request.endpoint == 'index' %}class="active"{% endif %}>Dashboard</a>
                 <a href="{{ url_for('systems') }}" {% if request.endpoint == 'systems' or request.endpoint == 'system_detail' %}class="active"{% endif %}>Systems</a>
