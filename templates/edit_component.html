@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Component - Hardware Inventory
+<script>
+function deleteComponent(id, model) {
+    if (confirm(`Are you sure you want to delete component: ${model}?`)) {
+        fetch(`/component/${id}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                window.location.href = '{{ url_for("components") }}';
+            } else {
+                alert('Error deleting component: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Error deleting component: ' + error);
+        });
+    }
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<h1>Edit Component</h1>
+
+<div class="card">
+    <form method="post">
+        <div class="form-group">
+            <label>Component Type</label>
+            <input type="text" value="{{ component.component_type|title }}" disabled>
+        </div>
+        
+        <div class="form-group">
+            <label for="manufacturer">Manufacturer</label>
+            <input type="text" name="manufacturer" id="manufacturer" value="{{ component.manufacturer or '' }}">
+        </div>
+        
+        <div class="form-group">
+            <label for="model">Model</label>
+            <input type="text" name="model" id="model" value="{{ component.model }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="serial">Serial Number</label>
+            <input type="text" name="serial" id="serial" value="{{ component.serial_number or '' }}">
+        </div>
+        
+        <div class="form-group">
+            <label for="status">Status</label>
+            <select name="status" id="status">
+                <option value="installed" {% if component.status == 'installed' %}selected{% endif %}>Installed</option>
+                <option value="spare" {% if component.status == 'spare' %}selected{% endif %}>Spare</option>
+                <option value="retired" {% if component.status == 'retired' %}selected{% endif %}>Retired</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="location">Location</label>
+            <input type="text" name="location" id="location" value="{{ component.location or '' }}" 
+                   placeholder="Hostname if installed, physical location if spare">
+        </div>
+        
+        <div class="form-group">
+            <label for="notes">Notes</label>
+            <textarea name="notes" id="notes" rows="3">{{ component.notes or '' }}</textarea>
+        </div>
+        
+        <div class="form-group">
+            <button type="submit" class="button">Save Changes</button>
+            <a href="{{ url_for('components') }}" class="button secondary">Cancel</a>
+            <button type="button" class="button secondary" style="float: right; background-color: #dc3545;" onclick="deleteComponent({{ component.id }}, '{{ component.model }}')">Delete Component</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

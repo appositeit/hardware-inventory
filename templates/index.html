@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Hardware Inventory{% endblock %}
+
+{% block content %}
+<h1>Hardware Inventory Dashboard</h1>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <h3>Total Systems</h3>
+        <div class="stat-value">{{ system_count }}</div>
+    </div>
+    
+    {% for comp_type, counts in stats.items() %}
+    <div class="stat-card">
+        <h3>{{ comp_type|title }}</h3>
+        <div>
+            <span class="status-badge status-installed">Installed: {{ counts.installed }}</span>
+            <span class="status-badge status-spare">Spare: {{ counts.spare }}</span>
+            {% if counts.retired > 0 %}
+            <span class="status-badge status-retired">Retired: {{ counts.retired }}</span>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="card">
+    <h2>Quick Actions</h2>
+    <p>
+        <a href="{{ url_for('systems') }}" class="button">View All Systems</a>
+        <a href="{{ url_for('components') }}" class="button">View All Components</a>
+        <a href="{{ url_for('add_component') }}" class="button secondary">Add Spare Component</a>
+    </p>
+</div>
+
+<div class="card">
+    <h2>Component Summary</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Type</th>
+                <th>Installed</th>
+                <th>Spare</th>
+                <th>Retired</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for comp_type, counts in stats.items() %}
+            <tr>
+                <td><a href="{{ url_for('components', type=comp_type) }}">{{ comp_type|title }}</a></td>
+                <td>{{ counts.installed }}</td>
+                <td>{{ counts.spare }}</td>
+                <td>{{ counts.retired }}</td>
+                <td>{{ counts.installed + counts.spare + counts.retired }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

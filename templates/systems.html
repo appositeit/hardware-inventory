@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Systems - Hardware Inventory
+<script>
+function deleteSystem(hostname) {
+    if (confirm(`Are you sure you want to delete system: ${hostname}?\n\nThis will mark all its components as spare.`)) {
+        fetch(`/system/${hostname}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                location.reload();
+            } else {
+                alert('Error deleting system: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Error deleting system: ' + error);
+        });
+    }
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<h1>Systems</h1>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>Hostname</th>
+                <th>Manufacturer</th>
+                <th>Model</th>
+                <th>Serial Number</th>
+                <th>Components</th>
+                <th>Last Scan</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for system in systems %}
+            <tr>
+                <td><a href="{{ url_for('system_detail', hostname=system.hostname) }}">{{ system.hostname }}</a></td>
+                <td>{{ system.manufacturer or '-' }}</td>
+                <td>{{ system.model or '-' }}</td>
+                <td>{{ system.serial_number or '-' }}</td>
+                <td>{{ system.component_count }}</td>
+                <td>{{ system.last_scan or 'Never' }}</td>
+                <td>
+                    <a href="{{ url_for('system_detail', hostname=system.hostname) }}" class="button">View</a>
+                    <button class="button secondary" onclick="deleteSystem('{{ system.hostname }}')">Delete</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

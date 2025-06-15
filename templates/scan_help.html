@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Scan Systems - Hardware Inventory{% endblock %}
+
+{% block content %}
+<h1>Scanning Systems</h1>
+
+<div class="card">
+    <h2>Quick Start - One Line Scanner</h2>
+    <p>The easiest way to scan any Linux system and add it to this inventory:</p>
+    
+    <div style="background-color: #f0f8ff; padding: 15px; border-radius: 5px; margin: 15px 0;">
+        <h3 style="margin-top: 0;">Run this command on any Linux system:</h3>
+        <pre style="margin-bottom: 0;"><code>curl {{ server_url }}/scan_system | bash</code></pre>
+        
+        <p style="margin-top: 10px;"><strong>For complete hardware details (recommended):</strong></p>
+        <pre style="margin-bottom: 0;"><code>curl {{ server_url }}/scan_system | sudo bash</code></pre>
+    </div>
+    
+    <p>This will automatically:</p>
+    <ul>
+        <li>Download the hardware detection script</li>
+        <li>Scan the system's hardware</li>
+        <li>Upload results to this inventory server</li>
+        <li>Clean up temporary files</li>
+    </ul>
+</div>
+
+<div class="card">
+    <h2>Alternative Methods</h2>
+    
+    <h3>1. Scan This Server Locally</h3>
+    <pre><code>cd /home/jem/development/nara_admin/hardware_inventory
+sudo python3 inventory_manager.py scan</code></pre>
+    
+    <h3>2. Scan Remote System via SSH</h3>
+    <pre><code>cd /home/jem/development/nara_admin/hardware_inventory
+python3 inventory_manager.py scan --hostname &lt;remote-hostname&gt;</code></pre>
+    
+    <p><strong>Note:</strong> SSH scanning requires key authentication to be set up.</p>
+</div>
+
+<div class="card">
+    <h2>How the One-Line Scanner Works</h2>
+    <p>The scanner script will:</p>
+    
+    <ol>
+        <li><strong>Check Dependencies:</strong> Verify that required commands are installed</li>
+        <li><strong>Notify About Missing Tools:</strong> If dmidecode is not installed, it will show install instructions</li>
+        <li><strong>Download Detection Script:</strong> Fetch the hardware detection script from this server</li>
+        <li><strong>Scan Hardware:</strong> Detect CPU, memory, storage, GPU, and motherboard information</li>
+        <li><strong>Upload Results:</strong> Send the scan data back to this inventory server</li>
+    </ol>
+    
+    <h3>What If dmidecode Is Missing?</h3>
+    <p>The scanner will still work but with limited information. It will show you how to install dmidecode:</p>
+    <ul>
+        <li><strong>Debian/Ubuntu:</strong> <code>sudo apt-get install dmidecode</code></li>
+        <li><strong>RHEL/CentOS:</strong> <code>sudo yum install dmidecode</code></li>
+        <li><strong>Fedora:</strong> <code>sudo dnf install dmidecode</code></li>
+    </ul>
+</div>
+
+<div class="card">
+    <h2>Manual Upload (If Automated Upload Fails)</h2>
+    <p>If the automatic upload fails, you can manually upload the scan results:</p>
+    
+    <pre><code># The scanner saves data to a temporary file if upload fails
+# Look for the path in the error message, then:
+curl -X POST -H "Content-Type: application/json" \
+     -d @/tmp/hardware_inventory_*/hardware_data.json \
+     {{ server_url }}/api/upload_scan</code></pre>
+</div>
+
+<div class="card">
+    <h2>Requirements</h2>
+    <ul>
+        <li><strong>Linux Systems Only:</strong> The detection script uses Linux-specific commands (lscpu, lsblk, lspci)</li>
+        <li><strong>SSH Access:</strong> For remote scanning, SSH key authentication should be configured</li>
+        <li><strong>Sudo Access:</strong> For complete hardware details (DMI information), sudo access is recommended</li>
+    </ul>
+</div>
+
+<div class="card">
+    <h2>What Gets Detected</h2>
+    <table>
+        <tr>
+            <th>Component</th>
+            <th>Details Collected</th>
+            <th>Requires Sudo</th>
+        </tr>
+        <tr>
+            <td>CPU</td>
+            <td>Model, cores, threads, sockets</td>
+            <td>No</td>
+        </tr>
+        <tr>
+            <td>Memory</td>
+            <td>Total capacity, individual DIMM details</td>
+            <td>Yes (for DIMM details)</td>
+        </tr>
+        <tr>
+            <td>Storage</td>
+            <td>All disks: model, size, serial, type (SSD/HDD)</td>
+            <td>No</td>
+        </tr>
+        <tr>
+            <td>GPU</td>
+            <td>Graphics card model</td>
+            <td>No</td>
+        </tr>
+        <tr>
+            <td>Motherboard</td>
+            <td>Manufacturer, model, serial number</td>
+            <td>Yes</td>
+        </tr>
+        <tr>
+            <td>System</td>
+            <td>Manufacturer, model, UUID</td>
+            <td>Yes</td>
+        </tr>
+    </table>
+</div>
+
+<div class="card">
+    <h2>Troubleshooting</h2>
+    <h3>SSH Key Setup</h3>
+    <p>To enable passwordless SSH for remote scanning:</p>
+    <pre><code># On this server, generate SSH key if needed
+ssh-keygen -t rsa -b 4096
+
+# Copy key to remote system
+ssh-copy-id username@remote-hostname</code></pre>
+    
+    <h3>Testing Detection Script</h3>
+    <p>Test the detection script locally first:</p>
+    <pre><code>cd /home/jem/development/nara_admin/hardware_inventory
+./detect_hardware.sh | python3 -m json.tool</code></pre>
+    
+    <h3>Common Issues</h3>
+    <ul>
+        <li><strong>Permission Denied:</strong> Ensure the detection script is executable (chmod +x)</li>
+        <li><strong>JSON Parse Errors:</strong> Run without sudo first, some systems may have issues with sudo</li>
+        <li><strong>Missing Commands:</strong> Ensure lscpu, lsblk, and lspci are installed on the target system</li>
+    </ul>
+</div>
+
+<style>
+pre {
+    background-color: #f4f4f4;
+    padding: 10px;
+    border-radius: 4px;
+    overflow-x: auto;
+}
+code {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.9em;
+}
+h3 {
+    margin-top: 20px;
+    color: #333;
+}
+ul li {
+    margin-bottom: 8px;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Credits - Hardware Inventory{% endblock %}
+
+{% block content %}
+<h1>Credits</h1>
+
+<div class="card">
+    <h2>Hardware Inventory System</h2>
+    <p>Developed for nara server administration.</p>
+    <p>Built with Python, Flask, and SQLite.</p>
+</div>
+
+<div class="card">
+    <h2>Background Image</h2>
+    <p>The electronic component pattern background is licensed from:</p>
+    <p style="margin-left: 20px;">
+        ID <a href="https://www.dreamstime.com/seamless-pattern-electronic-component-desktop-computer-motherboard-processor-video-card-memory-hdd-image229146774">229146774</a> 
+        @ <a href="https://www.dreamstime.com/ai18io81_info">Ai18io81</a> 
+        | <a href="https://www.dreamstime.com/">Dreamstime.com</a>
+    </p>
+</div>
+
+<div class="card">
+    <h2>Open Source Components</h2>
+    <ul>
+        <li><strong>Flask</strong> - Web framework</li>
+        <li><strong>SQLite</strong> - Database engine</li>
+        <li><strong>Linux Hardware Detection Tools</strong>:
+            <ul>
+                <li>lscpu - CPU information</li>
+                <li>lsblk - Storage device information</li>
+                <li>lspci - PCI device information</li>
+                <li>dmidecode - DMI/SMBIOS information</li>
+            </ul>
+        </li>
+    </ul>
+</div>
+{% endblock %}

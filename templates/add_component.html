@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Add Component - Hardware Inventory{% endblock %}
+
+{% block content %}
+<h1>Add Spare Component</h1>
+
+<div class="card">
+    <form method="post">
+        <div class="form-group">
+            <label for="type">Component Type*</label>
+            <select name="type" id="type" required>
+                <option value="">Select Type</option>
+                <option value="cpu">CPU</option>
+                <option value="gpu">GPU</option>
+                <option value="memory">Memory</option>
+                <option value="storage">Storage</option>
+                <option value="motherboard">Motherboard</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="manufacturer">Manufacturer*</label>
+            <input type="text" name="manufacturer" id="manufacturer" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="model">Model*</label>
+            <input type="text" name="model" id="model" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="serial">Serial Number</label>
+            <input type="text" name="serial" id="serial">
+        </div>
+        
+        <div class="form-group">
+            <label for="location">Storage Location</label>
+            <input type="text" name="location" id="location" placeholder="e.g., Shelf A, Drawer 3">
+        </div>
+        
+        <div class="form-group">
+            <label for="notes">Notes</label>
+            <textarea name="notes" id="notes" rows="3"></textarea>
+        </div>
+        
+        <div class="form-group">
+            <button type="submit" class="button">Add Component</button>
+            <a href="{{ url_for('components') }}" class="button secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

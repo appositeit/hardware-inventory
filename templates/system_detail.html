@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}{{ system.hostname }} - Hardware Inventory{% endblock %}
+
+{% block content %}
+<h1>System: {{ system.hostname }}</h1>
+
+<div class="card">
+    <h2>System Information</h2>
+    <table>
+        <tr>
+            <th>Hostname</th>
+            <td>{{ system.hostname }}</td>
+        </tr>
+        <tr>
+            <th>Manufacturer</th>
+            <td>{{ system.manufacturer or '-' }}</td>
+        </tr>
+        <tr>
+            <th>Model</th>
+            <td>{{ system.model or '-' }}</td>
+        </tr>
+        <tr>
+            <th>Serial Number</th>
+            <td>{{ system.serial_number or '-' }}</td>
+        </tr>
+        <tr>
+            <th>UUID</th>
+            <td>{{ system.uuid or '-' }}</td>
+        </tr>
+        <tr>
+            <th>Last Scan</th>
+            <td>{{ system.last_scan or 'Never' }}</td>
+        </tr>
+    </table>
+</div>
+
+<div class="card">
+    <h2>Components</h2>
+    
+    {% set component_types = components|groupby('component_type') %}
+    
+    {% for comp_type, items in component_types %}
+    <h3>{{ comp_type|upper }}</h3>
+    <table style="margin-bottom: 20px;">
+        <thead>
+            <tr>
+                <th>Manufacturer</th>
+                <th>Model</th>
+                <th>Serial Number</th>
+                <th>Details</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for comp in items %}
+            <tr>
+                <td>{{ comp.manufacturer or '-' }}</td>
+                <td>{{ comp.model }}</td>
+                <td>{{ comp.serial_number or '-' }}</td>
+                <td>
+                    {% if comp.specs %}
+                        {% if comp_type == 'memory' %}
+                            Size: {{ comp.specs.size }}, Speed: {{ comp.specs.speed }}
+                        {% elif comp_type == 'storage' %}
+                            Size: {{ comp.specs.size }}, Type: {{ comp.specs.type }}
+                        {% elif comp_type == 'cpu' %}
+                            Cores: {{ comp.specs.cores }}, Threads/Core: {{ comp.specs.threads_per_core }}
+                        {% endif %}
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endfor %}
+</div>
+
+<div class="card">
+    <p>
+        <a href="{{ url_for('systems') }}" class="button secondary">Back to Systems</a>
+        <button class="button secondary" style="float: right; background-color: #dc3545;" onclick="deleteSystem('{{ system.hostname }}')">Delete System</button>
+    </p>
+</div>
+
+<script>
+function deleteSystem(hostname) {
+    if (confirm(`Are you sure you want to delete system: ${hostname}?\n\nThis will mark all its components as spare.`)) {
+        fetch(`/system/${hostname}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                window.location.href = '{{ url_for("systems") }}';
+            } else {
+                alert('Error deleting system: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Error deleting system: ' + error);
+        });
+    }
+}
+</script>
+{% endblock %}

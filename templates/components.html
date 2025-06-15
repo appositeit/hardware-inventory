@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Components - Hardware Inventory
+<script>
+function deleteComponent(id, model) {
+    if (confirm(`Are you sure you want to delete component: ${model}?`)) {
+        fetch(`/component/${id}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                location.reload();
+            } else {
+                alert('Error deleting component: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Error deleting component: ' + error);
+        });
+    }
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<h1>Components</h1>
+
+<div class="filter-bar">
+    <form method="get" action="{{ url_for('components') }}" style="display: inline;">
+        <label>Type:</label>
+        <select name="type" onchange="this.form.submit()">
+            <option value="">All Types</option>
+            <option value="cpu" {% if filter_type == 'cpu' %}selected{% endif %}>CPU</option>
+            <option value="gpu" {% if filter_type == 'gpu' %}selected{% endif %}>GPU</option>
+            <option value="memory" {% if filter_type == 'memory' %}selected{% endif %}>Memory</option>
+            <option value="storage" {% if filter_type == 'storage' %}selected{% endif %}>Storage</option>
+            <option value="motherboard" {% if filter_type == 'motherboard' %}selected{% endif %}>Motherboard</option>
+        </select>
+        
+        <label>Status:</label>
+        <select name="status" onchange="this.form.submit()">
+            <option value="">All Status</option>
+            <option value="installed" {% if filter_status == 'installed' %}selected{% endif %}>Installed</option>
+            <option value="spare" {% if filter_status == 'spare' %}selected{% endif %}>Spare</option>
+            <option value="retired" {% if filter_status == 'retired' %}selected{% endif %}>Retired</option>
+        </select>
+    </form>
+    
+    <a href="{{ url_for('add_component') }}" class="button" style="float: right;">Add Component</a>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>Type</th>
+                <th>Manufacturer</th>
+                <th>Model</th>
+                <th>Serial Number</th>
+                <th>Status</th>
+                <th>Location</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for comp in components %}
+            <tr>
+                <td>{{ comp.component_type|title }}</td>
+                <td>{{ comp.manufacturer or '-' }}</td>
+                <td>{{ comp.model }}</td>
+                <td>{{ comp.serial_number or '-' }}</td>
+                <td>
+                    <span class="status-badge status-{{ comp.status }}">{{ comp.status|title }}</span>
+                </td>
+                <td>
+                    {% if comp.status == 'installed' and comp.location %}
+                        <a href="{{ url_for('system_detail', hostname=comp.location) }}">{{ comp.location }}</a>
+                    {% else %}
+                        {{ comp.location or '-' }}
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{{ url_for('edit_component', comp_id=comp.id) }}" class="button">Edit</a>
+                    <button class="button secondary" onclick="deleteComponent({{ comp.id }}, '{{ comp.model }}')">Delete</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
