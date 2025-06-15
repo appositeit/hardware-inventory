@@ -13,6 +13,15 @@ from datetime import datetime
 from typing import Dict, List, Optional
 import argparse
 
+# Import our PCI lookup utility
+try:
+    from pci_lookup import PCIIDLookup, enhance_manufacturer_detection, parse_lspci_vendor_ids
+except ImportError:
+    print("Warning: PCI lookup module not available. Manufacturer detection will be limited.")
+    PCIIDLookup = None
+    enhance_manufacturer_detection = None
+    parse_lspci_vendor_ids = None
+
 
 class HardwareInventory:
     def __init__(self, db_path: str = None):
@@ -22,6 +31,16 @@ class HardwareInventory:
             db_path = os.path.join(base_dir, 'data', 'hardware_inventory.db')
         self.db_path = db_path
         self.conn = None
+        
+        # Initialize PCI lookup if available
+        self.pci_lookup = None
+        if PCIIDLookup:
+            try:
+                self.pci_lookup = PCIIDLookup()
+                print(f"PCI database loaded: {len(self.pci_lookup.vendors)} vendors, {len(self.pci_lookup.devices)} devices")
+            except Exception as e:
+                print(f"Warning: Could not load PCI database: {e}")
+        
         self.init_database()
     
     def init_database(self):
@@ -145,8 +164,11 @@ class HardwareInventory:
         # Process CPU
         cpu_data = data.get('cpu', {})
         if cpu_data.get('model'):
+            # Enhance manufacturer detection
+            manufacturer = self._enhance_component_manufacturer('cpu', '', cpu_data['model'], cpu_data)
+            
             component_id = self._add_or_update_component(
-                cursor, 'cpu', '', cpu_data['model'], '',
+                cursor, 'cpu', manufacturer, cpu_data['model'], '',
                 json.dumps(cpu_data), 'installed', data['hostname']
             )
             self._link_component_to_system(cursor, system_id, component_id)
@@ -176,10 +198,16 @@ class HardwareInventory:
                 specs = {
                     'device': disk.get('device'),
                     'size': disk.get('size'),
-                    'type': disk.get('type')
+                    'type': disk.get('type'),
+                    'vendor_id': disk.get('vendor_id', ''),
+                    'device_id': disk.get('device_id', '')
                 }
+                
+                # Enhance manufacturer detection
+                manufacturer = self._enhance_component_manufacturer('storage', '', disk['model'], disk)
+                
                 component_id = self._add_or_update_component(
-                    cursor, 'storage', '',
+                    cursor, 'storage', manufacturer,
                     disk['model'],
                     disk.get('serial', ''),
                     json.dumps(specs), 'installed', data['hostname']
@@ -189,8 +217,11 @@ class HardwareInventory:
         # Process GPU
         for gpu in data.get('gpu', []):
             if gpu.get('device'):
+                # Enhance manufacturer detection
+                manufacturer = self._enhance_component_manufacturer('gpu', '', gpu['device'], gpu)
+                
                 component_id = self._add_or_update_component(
-                    cursor, 'gpu', '',
+                    cursor, 'gpu', manufacturer,
                     gpu['device'], '',
                     json.dumps(gpu), 'installed', data['hostname']
                 )
@@ -210,6 +241,38 @@ class HardwareInventory:
         
         self.conn.commit()
     
+    def _enhance_component_manufacturer(self, comp_type: str, manufacturer: str, 
+                                       model: str, component_data: dict = None) -> str:
+        """Enhance manufacturer detection using PCI lookup and pattern matching"""
+        if not self.pci_lookup:
+            return manufacturer
+        
+        # If we already have a good manufacturer, keep it
+        if manufacturer and len(manufacturer.strip()) > 2:
+            return manufacturer.strip()
+        
+        # Create component data dict for enhancement function
+        if component_data is None:
+            component_data = {
+                'component_type': comp_type,
+                'manufacturer': manufacturer,
+                'model': model
+            }
+        
+        # Use enhancement function
+        enhanced_manufacturer = enhance_manufacturer_detection(component_data, self.pci_lookup)
+        
+        # Try to get manufacturer from PCI IDs if available in specs
+        if not enhanced_manufacturer or enhanced_manufacturer == manufacturer:
+            if component_data and isinstance(component_data, dict):
+                vendor_id = component_data.get('vendor_id')
+                if vendor_id:
+                    pci_manufacturer = self.pci_lookup.get_vendor_name(vendor_id)
+                    if pci_manufacturer:
+                        enhanced_manufacturer = pci_manufacturer
+        
+        return enhanced_manufacturer or manufacturer
+
     def _add_or_update_component(self, cursor, comp_type: str, manufacturer: str,
                                  model: str, serial: str, specs: str,
                                  status: str, location: str) -> int:
@@ -382,6 +445,74 @@ class HardwareInventory:
         result = cursor.fetchone()
         return result[0] if result else None
     
+    def backfill_manufacturers(self) -> int:
+        """
+        Backfill manufacturer information for existing components with missing manufacturers
+        Returns the number of components updated
+        """
+        if not self.pci_lookup:
+            print("PCI lookup not available. Cannot backfill manufacturers.")
+            return 0
+        
+        cursor = self.conn.cursor()
+        updated_count = 0
+        
+        try:
+            # Get components with missing or empty manufacturers
+            cursor.execute("""
+                SELECT id, component_type, manufacturer, model, specifications 
+                FROM components 
+                WHERE manufacturer IS NULL OR manufacturer = '' OR LENGTH(TRIM(manufacturer)) <= 2
+            """)
+            
+            components = cursor.fetchall()
+            print(f"Found {len(components)} components with missing manufacturer information")
+            
+            for comp in components:
+                comp_id, comp_type, current_manufacturer, model, specs_json = comp
+                
+                # Parse specifications to get any PCI IDs
+                specs = {}
+                if specs_json:
+                    try:
+                        specs = json.loads(specs_json)
+                    except json.JSONDecodeError:
+                        pass
+                
+                # Create component data for enhancement
+                component_data = {
+                    'component_type': comp_type,
+                    'manufacturer': current_manufacturer or '',
+                    'model': model,
+                    'vendor_id': specs.get('vendor_id', ''),
+                    'device_id': specs.get('device_id', '')
+                }
+                
+                # Try to enhance manufacturer
+                enhanced_manufacturer = self._enhance_component_manufacturer(
+                    comp_type, current_manufacturer or '', model, component_data
+                )
+                
+                # Update if we found a better manufacturer
+                if enhanced_manufacturer and enhanced_manufacturer != (current_manufacturer or ''):
+                    cursor.execute("""
+                        UPDATE components 
+                        SET manufacturer = ?, updated_at = CURRENT_TIMESTAMP
+                        WHERE id = ?
+                    """, (enhanced_manufacturer, comp_id))
+                    
+                    updated_count += 1
+                    print(f"Updated {comp_type} '{model}' with manufacturer: {enhanced_manufacturer}")
+            
+            self.conn.commit()
+            print(f"Successfully updated {updated_count} components with manufacturer information")
+            return updated_count
+            
+        except Exception as e:
+            self.conn.rollback()
+            print(f"Error backfilling manufacturers: {e}")
+            return 0
+
     def close(self):
         """Close database connection"""
         if self.conn:
@@ -390,7 +521,7 @@ class HardwareInventory:
 
 def main():
     parser = argparse.ArgumentParser(description='Hardware Inventory Manager')
-    parser.add_argument('action', choices=['scan', 'add-spare', 'list', 'show'],
+    parser.add_argument('action', choices=['scan', 'add-spare', 'list', 'show', 'backfill-manufacturers'],
                        help='Action to perform')
     parser.add_argument('--hostname', help='Hostname for remote scan or show')
     parser.add_argument('--type', help='Component type (for add-spare/list)')
@@ -486,6 +617,14 @@ def main():
                 for sys in systems:
                     print(f"{sys['hostname']:20} {sys['manufacturer']:15} {sys['model']:20} "
                           f"({sys['component_count']} components)")
+        
+        elif args.action == 'backfill-manufacturers':
+            print("Backfilling manufacturer information for existing components...")
+            updated_count = inventory.backfill_manufacturers()
+            if updated_count > 0:
+                print(f"Successfully updated {updated_count} components")
+            else:
+                print("No components needed manufacturer updates")
     
     finally:
         inventory.close()

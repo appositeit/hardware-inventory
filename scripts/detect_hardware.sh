@@ -62,10 +62,24 @@ for disk in $(lsblk -d -o NAME,TYPE | grep disk | awk '{print $1}'); do
     echo "      \"serial\": \"$serial\","
     rota=$(lsblk -d -o ROTA -n /dev/$disk 2>/dev/null)
     if [ "$rota" = "0" ]; then
-        echo "      \"type\": \"SSD\""
+        echo "      \"type\": \"SSD\","
     else
-        echo "      \"type\": \"HDD\""
+        echo "      \"type\": \"HDD\","
     fi
+    
+    # Try to get PCI vendor info for NVMe devices
+    vendor_id=""
+    device_id=""
+    if [[ "$disk" == nvme* ]]; then
+        # For NVMe drives, try to find PCI info
+        pci_info=$(lspci -nn 2>/dev/null | grep -i "Non-Volatile\|NVMe" | head -1)
+        if [ -n "$pci_info" ]; then
+            vendor_id=$(echo "$pci_info" | grep -o '\[....:....\]' | tail -1 | sed 's/\[\(.*\):\(.*\)\]/\1/')
+            device_id=$(echo "$pci_info" | grep -o '\[....:....\]' | tail -1 | sed 's/\[\(.*\):\(.*\)\]/\2/')
+        fi
+    fi
+    echo "      \"vendor_id\": \"$vendor_id\","
+    echo "      \"device_id\": \"$device_id\""
 done
 if [ $first -eq 0 ]; then echo "    }"; fi
 echo "  ],"
@@ -77,9 +91,20 @@ if command -v lspci >/dev/null 2>&1; then
     while IFS= read -r line; do
         if [ $gpu_count -gt 0 ]; then echo "    },"; fi
         echo "    {"
-        echo "      \"device\": \"$(echo "$line" | cut -d: -f3- | xargs)\""
+        # Extract device description and PCI IDs
+        device_desc=$(echo "$line" | sed 's/.*: //')
+        vendor_id=$(echo "$line" | grep -o '\[....:....\]' | tail -1 | sed 's/\[\(.*\):\(.*\)\]/\1/')
+        device_id=$(echo "$line" | grep -o '\[....:....\]' | tail -1 | sed 's/\[\(.*\):\(.*\)\]/\2/')
+        echo "      \"device\": \"$device_desc\","
+        if [ -n "$vendor_id" ] && [ -n "$device_id" ]; then
+            echo "      \"vendor_id\": \"$vendor_id\","
+            echo "      \"device_id\": \"$device_id\""
+        else
+            echo "      \"vendor_id\": \"\","
+            echo "      \"device_id\": \"\""
+        fi
         gpu_count=$((gpu_count + 1))
-    done < <(lspci | grep -E "VGA|3D|Display")
+    done < <(lspci -nn | grep -E "VGA|3D|Display")
     if [ $gpu_count -gt 0 ]; then echo "    }"; fi
 fi
 echo "  ],"
