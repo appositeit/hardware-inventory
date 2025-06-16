@@ -271,8 +271,7 @@
     <nav>
         <div class="nav-container">
             <div style="display: flex; align-items: center;">
-                <a href="{{ url_for('index') }}" class="nav-brand">Hardware Inventory</a>
-                <span class="page-title">{% block page_title %}{% endblock %}</span>
+                <a href="{{ url_for('index') }}" class="nav-brand">{% block page_title %}Hardware Inventory{% endblock %}</a>
             </div>
             <div class="nav-links">
                 <a href="{{ url_for('index') }}" {% if request.endpoint == 'index' %}class="active"{% endif %}>Dashboard</a>
