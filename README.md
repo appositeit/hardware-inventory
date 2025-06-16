@@ -17,11 +17,16 @@ A lightweight, web-based hardware inventory system for tracking computer compone
 
 ## Screenshots
 
+### Dashboard Overview
+![Hardware Inventory Dashboard](doc/homepage.png)
+
 The web interface provides an easy way to view and manage your hardware inventory:
-- Dashboard with component statistics
-- System list with component counts
-- Detailed component views
-- Spare parts tracking
+- **Dashboard**: Component statistics and system overview
+- **Systems**: List of scanned computers with their components  
+- **Components**: All components with filtering by type and status
+- **Spare Parts**: Track inventory not currently installed
+
+*Additional screenshots coming soon for other interface sections*
 
 ## Quick Start
 
@@ -41,7 +46,7 @@ curl http://your-server:5000/scan_system | sudo bash
 
 1. **Clone the repository:**
 ```bash
-git clone https://github.com/yourusername/hardware-inventory.git
+git clone https://github.com/appositeit/hardware-inventory.git
 cd hardware-inventory
 ```
 
