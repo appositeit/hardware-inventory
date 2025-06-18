@@ -3,21 +3,23 @@ Description=Hardware Inventory Web Interface
 After=network.target
 
 [Service]
-Type=simple
+Type=forking
 User=%USER%
 Group=%GROUP%
 WorkingDirectory=%INSTALL_PATH%
 Environment="INVENTORY_DB=%INSTALL_PATH%/data/hardware_inventory.db"
-Environment="PYTHONPATH=%INSTALL_PATH%/src"
-ExecStart=%PYTHON_BIN% %INSTALL_PATH%/src/web_interface.py
+Environment="INVENTORY_PORT=5101"
+Environment="INVENTORY_HOST=0.0.0.0"
+Environment="INVENTORY_DEBUG=false"
+ExecStart=%INSTALL_PATH%/bin/systemd_start.sh
+ExecStop=%INSTALL_PATH%/bin/systemd_stop.sh
+PIDFile=%INSTALL_PATH%/data/hardware_inventory.pid
 Restart=on-failure
 RestartSec=10
 
 # Security hardening
 NoNewPrivileges=true
 PrivateTmp=true
-ProtectSystem=strict
-ProtectHome=true
 ReadWritePaths=%INSTALL_PATH%/data
 
 [Install]

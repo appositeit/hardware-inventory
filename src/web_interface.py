@@ -267,7 +267,9 @@ def scan_help():
     except:
         server_ip = "nara"
     
-    server_url = f"http://{server_ip}:5000"
+    # Get current port from environment or use default
+    port = os.environ.get('INVENTORY_PORT', '5101')
+    server_url = f"http://{server_ip}:{port}"
     
     return render_template('scan_help.html', 
                           server_url=server_url,
@@ -294,7 +296,9 @@ def scan_system():
     except:
         server_ip = hostname
     
-    server_url = f"http://{server_ip}:5000"
+    # Get current port from environment or use default
+    port = os.environ.get('INVENTORY_PORT', '5101')
+    server_url = f"http://{server_ip}:{port}"
     
     # Generate the bash script
     script = f'''#!/bin/bash
@@ -442,7 +446,25 @@ def api_scan_system(hostname):
 
 
 if __name__ == '__main__':
-    # Create templates directory
-    os.makedirs('templates', exist_ok=True)
+    import argparse
     
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Create templates directory
+    os.makedirs(os.path.join(BASE_DIR, 'templates'), exist_ok=True)
+    
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='Hardware Inventory Web Interface')
+    parser.add_argument('--host', default=os.environ.get('INVENTORY_HOST', '0.0.0.0'),
+                        help='Host to bind to (default: 0.0.0.0)')
+    parser.add_argument('--port', type=int, default=int(os.environ.get('INVENTORY_PORT', 5101)),
+                        help='Port to bind to (default: 5101)')
+    parser.add_argument('--debug', action='store_true', 
+                        default=os.environ.get('INVENTORY_DEBUG', 'false').lower() == 'true',
+                        help='Enable debug mode')
+    
+    args = parser.parse_args()
+    
+    print(f"Starting Hardware Inventory Web Interface on {args.host}:{args.port}")
+    print(f"Debug mode: {args.debug}")
+    print(f"Database: {app.config['DATABASE']}")
+    
+    app.run(host=args.host, port=args.port, debug=args.debug)
